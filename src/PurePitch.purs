@@ -16,6 +16,8 @@ import Data.Array (filter, (..), (!!), index, length, toUnfoldable, fromFoldable
 import Data.Int (toNumber, fromNumber, ceil)
 import Data.List as L
 import Data.Newtype (over, wrap)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Show (genericShow)
 import Effect (Effect)
 import Effect.Console (log)
 import Effect.Timer as T
@@ -81,18 +83,52 @@ wholeNoteDuration = 1.0
 --   , lastName  :: String
 --   , address   :: Address
 --   }
-type NoteType =
-  { freq :: Number,
-    durRatio :: Int
-  }
+-- type NoteType =
+--   { freq :: Number,
+--     durRatio :: Int
+--   }
+--
+-- data NoteData = NoteData
+--   { freq :: Number
+--   , durRatio :: Int
+--   }
 
-data NoteData = NoteData
-  { freq :: Number
-  , durRatio :: Int
-  }
+-- data Note = Note { freq :: Number , durRatio :: Int }
 
-showNote :: NoteType -> String
-showNote n = "note.freq=" <> show n.freq
+-- showNote :: NoteType -> String
+showNote2 :: Note -> String
+-- showNote n = "note.freq=" <> show n.freq
+showNote2 (Note {freq, durRatio}) = "note.freq=" <> show freq
+
+getFreq :: Note -> Number
+-- freq (Note {freq, _}) = freq
+-- freq (Note freq _) = freq
+getFreq (Note {freq, durRatio}) = freq
+
+getDurRatio :: Note -> Int
+getDurRatio (Note {freq, durRatio}) = durRatio
+
+-- instance showList :: Show a => Show (List a) where
+--   show x = genericShow x
+-- instance showNote :: Show a => Show (Note a) where
+--   show x = showNote2 x
+
+-- instance showMeasurementId :: Show MeasurementId where
+--   show = gShow
+-- following works:
+-- instance showNote :: Show Note where
+--   show = showNote2
+
+-- instance showMyRecord :: Show MyRecord where
+--   show = gShow
+-- derive instance genericMyRecord :: Generic MyRecord
+-- newtype MyRecord = MyRecord { a :: Int }
+-- derive instance genericNote :: Generic Note
+-- derive instance genericPerson :: Generic Person _
+newtype Note = Note { freq :: Number , durRatio :: Int }
+derive instance genericNote :: Generic Note _
+instance showNote :: Show Note where
+  show = genericShow
 
 -- showNoteData :: NoteData -> String
 -- showNoteData n = "note.freq=" <> show n.freq
@@ -103,15 +139,19 @@ showNote n = "note.freq=" <> show n.freq
 -- overTheMountianTriads
 -- type AddressBook = List Entry
 -- type Tune = Array Note
-type Tune = Array NoteData
+-- type Tune = Array NoteData
 
 -- overTheMountianTriads :: Tune
-overTheMountianTriads :: Array {freq :: Number, durRatio :: Int }
+-- overTheMountianTriads :: Array {freq :: Number, durRatio :: Int }
+overTheMountianTriads :: Array Note
 overTheMountianTriads = [
-  -- NoteData {freq: 220.0, durRatio: 12},
-  -- NoteData {freq: 660.0, durRatio: 12}
-  {freq: 300.0, durRatio: 12},
-  {freq: 660.0, durRatio: 12}
+  Note {freq: 220.0, durRatio: 12},
+  -- note: parens appear to be optional
+  -- (Note {freq: 660.0, durRatio: 12})
+  Note {freq: 440.0, durRatio: 12},
+  Note {freq: 330.0, durRatio: 12}
+  -- {freq: 300.0, durRatio: 12},
+  -- {freq: 660.0, durRatio: 12}
   ]
 
 otm = overTheMountianTriads
@@ -171,34 +211,65 @@ beep freq = do
   pure unit
 
 -- playTune :: Tune -> Effect Unit
-playTune :: Array {freq :: Number, durRatio :: Int} -> Effect Unit
+-- playTune :: Array {freq :: Number, durRatio :: Int} -> Effect Unit
+-- playTuneOld :: Array Note -> Effect Unit
+-- playTuneOld tune = do
+--   ctx <- newAudioContext
+--   osc <- createOscillator ctx
+--   startOscillator 0.0 osc
+--   let mn = otm !! 1
+--   -- let abc :: Number
+--   -- let abc = 7.0
+--   let freq  =  case mn of
+--                 Nothing -> 0.0
+--                 -- Just n -> debugger 1
+--                 -- Just n -> fromNumber $ 240
+--                 -- Just n -> 240
+--                 -- Just n -> ceil n.freq
+--                 -- Just n -> ceil $ getFreq n
+--                 Just n ->  getFreq n
+--   -- let freq = mn do
+--   --                 case mn of
+--   --                   Nothing -> 0
+--   --                   Just n -> n.freq
+--   log $ "playTune: freq=" <> show freq
+--   setValue freq =<< frequency osc
+--   connect osc =<< destination ctx
+--   let duration = 0.5
+--   -- halfway through, double the freq
+--   -- void $ T.setTimeout $ duration / 2.0 do
+--   --   setFrequency freq  osc
+--   _ <- T.setTimeout 250 do
+--     setFrequency 1200.0  osc
+--   stopOscillator duration osc
+--   pure unit
+
+playTune :: Array Note -> Effect Unit
 playTune tune = do
   ctx <- newAudioContext
   osc <- createOscillator ctx
+  connect osc =<< destination ctx
   startOscillator 0.0 osc
-  let mn = otm !! 0
-  -- let abc :: Number
-  -- let abc = 7.0
-  let freq  =  case mn of
-                Nothing -> 0
-                -- Just n -> debugger 1
-                -- Just n -> fromNumber $ 240
-                -- Just n -> 240
-                Just n -> ceil n.freq
-  -- let freq = mn do
-  --                 case mn of
-  --                   Nothing -> 0
-  --                   Just n -> n.freq
-  log $ "playTune: freq=" <> show freq
-  -- setValue freq =<< frequency osc
-  -- connect osc =<< destination ctx
+  playNote osc 0
+  pure unit
+
+-- toneStream :: Array Note -> Effect Unit
+-- playNote :: Effect OscillatorNode ->  Int -> Effect Unit
+playNote :: OscillatorNode ->  Int -> Effect Unit
+playNote osc 3 = stopOscillator 0.0  osc
+playNote osc i = do
+  let mNote = otm !! i
+  let freq  = case mNote of
+                Nothing -> 0.0
+                Just n ->  getFreq n
+  log $ "playNote: freq=" <> show freq
+  setValue freq =<< frequency  osc
   -- let duration = 0.5
-  -- -- halfway through, double the freq
-  -- -- void $ T.setTimeout $ duration / 2.0 do
-  -- --   setFrequency freq  osc
-  -- _ <- T.setTimeout 250 do
-  --   setFrequency 1200.0  osc
-  -- stopOscillator duration osc
+  _ <- T.setTimeout 500 do
+    -- setFrequency 1200.0  osc
+      -- let mNote = otm !! i
+      playNote osc (i + 1)
+
   pure unit
 
 -- initOscillator :: Effect Unit
@@ -226,7 +297,7 @@ setupPlayBtn = do
           log $ "classname below:"
           cn >>= log
           -- evtListener <- (eventListener playSong)
-          evtListener <- (eventListener playTone)
+          evtListener <- (eventListener startTone)
           addEventListener
             (EventType "mousedown")
             evtListener
@@ -247,17 +318,12 @@ setupPlayBtn = do
 --   log "btn pressed"
 --   beep 890.0
 
-playTone :: Event -> Effect Unit
-playTone e = do
+startTone :: Event -> Effect Unit
+startTone e = do
   log "btn pressed"
-  -- initOscillator
   -- beep 880.0
+  -- playTune otm
   playTune otm
-  -- toneStream 880.0
-  -- let r = toneDeafJsDoIt 5
-  -- log $ "btnHandler: r=" <> r
-  -- let custEvt = createVtEvt 1
-  -- dispatchVtEvt custEvt
   pure unit
 
 -- arrayToList :: forall a. Array a -> List a

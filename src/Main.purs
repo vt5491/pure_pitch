@@ -15,7 +15,7 @@ main = do
   -- quicky2 $ Just 7
   -- let a = [NoteData {freq: 440.0, durRatio: 8}]
   -- doSomething $ a !! 0
-  doSomething $ overTheMountianTriads !! 0
+  -- doSomething $ overTheMountianTriads !! 0
   void $ T.setTimeout 10 do
     log "timeout increment counter"
     purePitchInit

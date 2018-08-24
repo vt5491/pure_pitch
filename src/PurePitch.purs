@@ -37,40 +37,40 @@ halfStepMultiple :: Number
 halfStepMultiple = 1.059463
 
 -- Assume this is relative to A (e.g. 440 hz)
-chromaticLookup :: Int -> Number
-chromaticLookup 0  = 1.000000
-chromaticLookup 1  = 1.059463
-chromaticLookup 2  = 1.122462
-chromaticLookup 3 = 1.189207
-chromaticLookup 4 = 1.259921
-chromaticLookup 5 = 1.334839
-chromaticLookup 6 = 1.414213
-chromaticLookup 7 = 1.498307
-chromaticLookup 8 = 1.587401
-chromaticLookup 9 = 1.681792
-chromaticLookup 10 = 1.781797
-chromaticLookup 11 = 1.887748
-chromaticLookup _ = 1.00
-
-chromaticMap :: ToneIndex -> Number
-chromaticMap Zero  = 1.000000
-chromaticMap One  = 1.059463
-chromaticMap Two  = 1.122462
-chromaticMap Three = 1.189207
-chromaticMap Four = 1.259921
-chromaticMap Five = 1.334839
-chromaticMap Six = 1.414213
-chromaticMap Seven = 1.498307
-chromaticMap Eight = 1.587401
-chromaticMap Nine = 1.681792
-chromaticMap Ten = 1.781797
-chromaticMap Eleven = 1.887748
-
-data ToneIndex = Zero | One | Two | Three | Four | Five
-  | Six | Seven | Eight | Nine | Ten | Eleven
-
-derive instance eqToneIndex :: Eq ToneIndex
-derive instance ordToneIndex :: Ord ToneIndex
+-- chromaticLookup :: Int -> Number
+-- chromaticLookup 0  = 1.000000
+-- chromaticLookup 1  = 1.059463
+-- chromaticLookup 2  = 1.122462
+-- chromaticLookup 3 = 1.189207
+-- chromaticLookup 4 = 1.259921
+-- chromaticLookup 5 = 1.334839
+-- chromaticLookup 6 = 1.414213
+-- chromaticLookup 7 = 1.498307
+-- chromaticLookup 8 = 1.587401
+-- chromaticLookup 9 = 1.681792
+-- chromaticLookup 10 = 1.781797
+-- chromaticLookup 11 = 1.887748
+-- chromaticLookup _ = 1.00
+--
+-- chromaticMap :: ToneIndex -> Number
+-- chromaticMap Zero  = 1.000000
+-- chromaticMap One  = 1.059463
+-- chromaticMap Two  = 1.122462
+-- chromaticMap Three = 1.189207
+-- chromaticMap Four = 1.259921
+-- chromaticMap Five = 1.334839
+-- chromaticMap Six = 1.414213
+-- chromaticMap Seven = 1.498307
+-- chromaticMap Eight = 1.587401
+-- chromaticMap Nine = 1.681792
+-- chromaticMap Ten = 1.781797
+-- chromaticMap Eleven = 1.887748
+--
+-- data ToneIndex = Zero | One | Two | Three | Four | Five
+--   | Six | Seven | Eight | Nine | Ten | Eleven
+--
+-- derive instance eqToneIndex :: Eq ToneIndex
+-- derive instance ordToneIndex :: Ord ToneIndex
 
 
 -- chromaticIntervals :: ToneInterval -> Number
@@ -198,6 +198,16 @@ otmTab2 = [
     GuitarNote {string: 1, fret: 18},
     GuitarNote {string: 1, fret: 13},
     GuitarNote {string: 2, fret: 15}
+  ]},
+  Stanza {repeat: 4, notes: [
+    GuitarNote {string: 1, fret: 15},
+    GuitarNote {string: 1, fret: 12},
+    GuitarNote {string: 2, fret: 13}
+  ]},
+  Stanza {repeat: 4, notes: [
+    GuitarNote {string: 1, fret: 17},
+    GuitarNote {string: 1, fret: 13},
+    GuitarNote {string: 2, fret: 13}
   ]}
   ]
 
@@ -274,7 +284,8 @@ playTune tune = do
   startOscillator 0.0 osc
   -- playNote osc 0
   -- playNote2 osc globalSong 0
-  playStanza osc $ getStanza otmTab2 1
+  -- playStanza osc $ getStanza otmTab2 1
+  playNote2 osc (expandStanzaNotes otmTab2) 0
   pure unit
 
 playNote :: OscillatorNode ->  Int -> Effect Unit
@@ -311,7 +322,7 @@ playNote2 osc notes i
                     Just n ->  getFreq n
       log $ "playNote: freq=" <> show freq
       setValue freq =<< frequency  osc
-      _ <- T.setTimeout 500 do
+      _ <- T.setTimeout 150 do
           playNote2 osc notes (i + 1)
 
       pure unit
@@ -379,9 +390,26 @@ mTabToNote mtab = case mtab of
                     Nothing -> Nothing
                     Just gn -> Just $ Note {freq: fretToFreq gn, durRatio: 12}
 
--- repeatGuitarNotes :: Array GuitarNote -> Int -> Array GuitarNote
--- repeatGuitarNotes xs 0 = xs
--- repeatGuitarNotes xs n = a
+-- the second 'Array GuitarNote' is the acculator
+-- example:
+-- repeatGuitarNote [(GuitarNote { fret: 17, string: 1 }),(GuitarNote { fret: 13, string: 1 })] [] 3
+-- repeatGuitarNotes  n1 [] 3
+-- where n1 is an array of GuitarNote
+repeatGuitarNotes :: Array GuitarNote -> Array GuitarNote -> Int -> Array GuitarNote
+repeatGuitarNotes xs ac 0 = ac
+-- repeatGuitarNotes xs ac n = repeatGuitarNotes xs (snoc ac xs) (n - 1)
+repeatGuitarNotes xs ac n =
+  repeatGuitarNotes xs (foldl (\acc xss -> snoc acc xss) ac $ xs) (n - 1)
+
+-- second arg is an accumulator
+-- expandStanzaNotes :: Array Stanza -> Array GuitarNote -> Array GuitarNote
+-- expandStanzaNotes
+
+-- expandStanzaNotes :: Array Stanza -> Array (Array GuitarNote)
+-- Note: concat is basically the same as "flatten"
+expandStanzaNotes :: Array Stanza -> Array GuitarNote
+expandStanzaNotes xs =
+  concat $ foldl (\ac s -> snoc ac (repeatGuitarNotes (getStanzaNotes s) [] (getStanzaRepeat s))) [] xs
 
 -- repeatIntArray :: Array Int -> Int -> Array Int
 -- repeatIntArray xs 0 = xs

@@ -7,6 +7,10 @@ import Data.Maybe
 import Data.String
 import Prelude
 import Math (pow)
+-- import Control.Monad.ST (ST, newSTRef, readSTRef, modifySTRef)
+import Control.Monad.ST.Ref (STRef, new, read, modify) as ST
+import Control.Monad.State
+import Control.Monad.State.Class
 
 import Audio.WebAudio.AudioParam (getValue, setValue, setValueAtTime)
 import Audio.WebAudio.BaseAudioContext (createGain, createOscillator, currentTime, destination, newAudioContext, resume, state, suspend)
@@ -36,6 +40,8 @@ import Web.HTML.Window (Window, document)
 halfStepMultiple :: Number
 halfStepMultiple = 1.059463
 
+abc :: State Int Unit
+abc = put 7
 -- Assume this is relative to A (e.g. 440 hz)
 -- chromaticLookup :: Int -> Number
 -- chromaticLookup 0  = 1.000000
@@ -275,11 +281,44 @@ beep freq = do
 --   startOscillator 0.0 osc
 --   -- foldl
 --   pure unit
+-- doState :: State
+-- doState = execState do
+--   let a = get
+--   pure unit
 
 playTune :: Array Note -> Effect Unit
 playTune tune = do
+  -- let r = setAbc "def"
+  -- log $ "r=" <> show r
+  -- let s = getAbc ""
+  -- log $ "s=" <> show s
+  -- ref <- STRef { x: 0, v: 0 }
+  -- let ref = ST.new { x: 0, v: 0 }
+  -- let ref = ST.new "abc"
+  -- do
+  --   let val = ST.read ref
+  --   pure unit
+  -- log "hi"
+  -- let a = ST.modify ref (\x -> "def")
+  -- -- let va2 = val
+  -- let tmp = debugger 1
+  -- log $ "abc=" <> show ST.read
+  -- log $ "abc=" <> show val
+  -- let a = doState
+  -- a <- doState
+  -- let tmp = execState (do
+  -- let tmp = do
+  --   let a = get
+  --   pure unit
+  -- execState do
+  --   pure unit
+  --
+  -- let a = get
+  -- -- log $ "a=" <> show a
+  -- let debug = debugger 1
   ctx <- newAudioContext
   osc <- createOscillator ctx
+  let r = setOsc osc
   connect osc =<< destination ctx
   startOscillator 0.0 osc
   -- playNote osc 0
@@ -297,7 +336,8 @@ playNote osc i
   -- let songLen = 12
   -- in
   | i > globalSongLen = log "playNote: error"
-  | i == globalSongLen = stopOscillator 0.0  osc
+  -- | i == globalSongLen = stopOscillator 0.0  osc
+  | i == globalSongLen = stopOscillator 0.0 $ getOsc 1
   | i < globalSongLen = do
     let mNote = mTabToNote $ otmTab !! i
     let freq  = case mNote of
@@ -320,7 +360,7 @@ playNote2 osc notes i
       let freq  = case mNote of
                     Nothing -> 0.0
                     Just n ->  getFreq n
-      log $ "playNote: freq=" <> show freq
+      -- log $ "playNote: freq=" <> show freq
       setValue freq =<< frequency  osc
       _ <- T.setTimeout 150 do
           playNote2 osc notes (i + 1)
@@ -361,12 +401,41 @@ setupPlayBtn = do
       pure unit
   pure unit
 
+setupStopBtn ::  Effect Unit
+setupStopBtn = do
+  log "PurePitch: now in setupStopBtn"
+  doc <- map toParentNode (window >>= document)
+  mbtn <- querySelector (wrap "#stop-tone-btn") doc
+  case mbtn of
+    Nothing -> log "mbtn failed"
+    Just btn -> do
+      let mhtmlEl = fromElement btn
+      case mhtmlEl of
+        Nothing -> log "mhtml failed"
+        Just htmlEl -> do
+          let cn = className htmlEl
+          log $ "classname below:"
+          cn >>= log
+          -- evtListener <- (eventListener playSong)
+          evtListener <- (eventListener startTone)
+          addEventListener
+            (EventType "mousedown")
+            evtListener
+            false
+            ((toEventTarget <<< toElement) htmlEl)
+      pure unit
+  pure unit
+
 startTone :: Event -> Effect Unit
 startTone e = do
   log "btn pressed"
   -- beep 880.0
   -- playTune otm
   playTune otm
+  pure unit
+
+stopTone :: Event -> Effect Unit
+stopTone e = do
   pure unit
 
 fretToFreq :: GuitarNote -> Number
@@ -411,12 +480,10 @@ expandStanzaNotes :: Array Stanza -> Array GuitarNote
 expandStanzaNotes xs =
   concat $ foldl (\ac s -> snoc ac (repeatGuitarNotes (getStanzaNotes s) [] (getStanzaRepeat s))) [] xs
 
--- repeatIntArray :: Array Int -> Int -> Array Int
--- repeatIntArray xs 0 = xs
--- repeatIntArray xs n =
-
 -- typed hole example
 -- arrayToList :: forall a. Array a -> List a
 -- arrayToList = ?whatGoesHere
 
 foreign import debugger :: Int -> Int
+foreign import getOsc :: Int -> OscillatorNode
+foreign import setOsc :: OscillatorNode -> OscillatorNode

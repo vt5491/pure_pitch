@@ -16,7 +16,20 @@ exports.getOsc = function (val) {
 exports.setOsc = function (val) {
   var s = getState();
   s.osc = val;
+  // debugger
   return s.osc;
+}
+
+exports.getIsPlaying = function (val) {
+  var s = getState();
+  return s.isPlaying
+}
+
+exports.setIsPlaying = function (val) {
+  var s = getState();
+  s.isPlaying = val;
+  // debugger
+  return s.isPlaying;
 }
 
 function getState () {

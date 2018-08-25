@@ -158,6 +158,48 @@ otmTab2 = [
   ]}
   ]
 
+-- Space Truckin' triads.  Blackmore style
+spTab :: Array Stanza
+spTab = [
+  Stanza {repeat: 1, notes: [
+    GuitarNote {string: 1, fret: 17},
+    GuitarNote {string: 1, fret: 14},
+    GuitarNote {string: 1, fret: 0}
+    ]},
+  Stanza {repeat: 1, notes: [
+    GuitarNote {string: 1, fret: 12},
+    GuitarNote {string: 1, fret: 9},
+    GuitarNote {string: 1, fret: 0}
+    ]},
+  Stanza {repeat: 1, notes: [
+    GuitarNote {string: 1, fret: 15},
+    GuitarNote {string: 1, fret: 12},
+    GuitarNote {string: 1, fret: 0}
+    ]},
+  Stanza {repeat: 1, notes: [
+    GuitarNote {string: 1, fret: 10},
+    GuitarNote {string: 1, fret: 7},
+    GuitarNote {string: 1, fret: 0}
+    ]},
+  Stanza {repeat: 1, notes: [
+    GuitarNote {string: 1, fret: 8},
+    GuitarNote {string: 1, fret: 5},
+    GuitarNote {string: 1, fret: 0}
+    ]},
+  Stanza {repeat: 1, notes: [
+    GuitarNote {string: 1, fret: 10},
+    GuitarNote {string: 1, fret: 7},
+    GuitarNote {string: 1, fret: 0}
+    ]},
+  Stanza {repeat: 1, notes: [
+    -- GuitarNote {string: 3, fret: 9},
+    -- GuitarNote {string: 2, fret: 8},
+    GuitarNote {string: 1, fret: 7},
+    GuitarNote {string: 1, fret: 12}
+    ]}
+
+  ]
+
 globalSong = otmTab
 globalSongLen = (length globalSong) - 0
 
@@ -373,7 +415,8 @@ startTone e = do
   log "btn pressed"
   -- beep 880.0
   -- playTune otm
-  playTune otmTab2
+  -- playTune otmTab2
+  playTune spTab
   -- playTune
   pure unit
 
